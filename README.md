@@ -1,0 +1,2 @@
+# AzureFunctionsDocumentationAzure
+Azure function documentations
