@@ -16,11 +16,16 @@ namespace AzureFunctionDocumentationAzure
         [FunctionName("PaymentOnReceive")]
         public static async Task<ActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] Order order,
-            [Queue("orders")] IAsyncCollector<Order> orderQueue,
-            //[Queue("orders", Connection ="myappsettings")] IAsyncCollector<Order> orderQueue, if we specify variable name for connection
+            [Queue("%PaymentQueueName%", Connection = "PaymentQueueConnectionString")] IAsyncCollector<Order> orderQueue,
+            [Table("%TableName%", Connection = "PaymentTableConnectionString")] IAsyncCollector<Order> orderTable,
             ILogger log)
         {
             log.LogInformation("Order Received");
+
+            //Add to table
+            order.PartitionKey = "orders"; // demo purposed, not for production
+            order.RowKey = order.OrderId;
+            await orderTable.AddAsync(order);
 
             //Add to queue
             await orderQueue.AddAsync(order);
@@ -29,7 +34,7 @@ namespace AzureFunctionDocumentationAzure
         }
     }
 
-    public class Order
+    public class Order: TableEntity
     {
         public string OrderId { get; set; }
         public string ProductId { get; set; }
@@ -37,5 +42,10 @@ namespace AzureFunctionDocumentationAzure
         public string Email { get; set; }
         [Required]
         public decimal Price { get; set; }
+    }
+    public class TableEntity
+    {
+        public string PartitionKey { get; set; }
+        public string RowKey { get; set; }
     }
 }
